@@ -85,8 +85,27 @@ app.get("/login", async (req: any, res: any) => {
   }
 });
 
+// authenticate
+const authenticate = (req: any, res: any, next: any) => {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      error: "Access denied. No Token Provided",
+    });
+  }
+  const token = authHeader.split(" ")[1];
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT Secret is not defined");
+  }
+  jwt.verify(token, secret, (err: any, user: any) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+};
 // Add Todo
-app.post("/todo", async (req: any, res: any) => {
+app.post("/add", authenticate, async (req: any, res: any) => {
   const todoSchema = z.object({
     title: z.string(),
     description: z.string(),
@@ -103,9 +122,46 @@ app.post("/todo", async (req: any, res: any) => {
     data: {
       title: req.body.title,
       description: req.body.description,
+      userId: req.user.id,
     },
   });
   return res.status(201).json(newTodo);
+});
+
+// Get all todos
+app.get("/todo", authenticate, async (req: any, res: any) => {
+  try {
+    const todos = await prisma.todos.findMany({
+      where: {
+        id: req.user.id,
+      },
+    });
+    return res.status(200).send(todos);
+  } catch (error) {
+    return res.status(400).json({
+      error: "Unauthorized",
+    });
+  }
+});
+
+// Delete todo
+app.delete("/delete/:id", async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const todo = await prisma.todos.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+    return res.status(200).json({
+      message: "Deleted Successfully",
+      todo,
+    });
+  } catch (error) {
+    return res.status(400).send({
+      error: "Unauthorized",
+    });
+  }
 });
 app.listen(process.env.PORT || 8000, () => {
   console.log(`Server running on port ${process.env.PORT}`);

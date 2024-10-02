@@ -88,8 +88,28 @@ app.get("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
     }
 }));
+// authenticate
+const authenticate = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            error: "Access denied. No Token Provided",
+        });
+    }
+    const token = authHeader.split(" ")[1];
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error("JWT Secret is not defined");
+    }
+    jwt.verify(token, secret, (err, user) => {
+        if (err)
+            return res.sendStatus(403);
+        req.user = user;
+        next();
+    });
+};
 // Add Todo
-app.post("/todo", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/add", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const todoSchema = z.object({
         title: z.string(),
         description: z.string(),
@@ -105,9 +125,46 @@ app.post("/todo", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         data: {
             title: req.body.title,
             description: req.body.description,
+            userId: req.user.id,
         },
     });
     return res.status(201).json(newTodo);
+}));
+// Get all todos
+app.get("/todo", authenticate, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const todos = yield prisma.todos.findMany({
+            where: {
+                id: req.user.id,
+            },
+        });
+        return res.status(200).send(todos);
+    }
+    catch (error) {
+        return res.status(400).json({
+            error: "Unauthorized",
+        });
+    }
+}));
+// Delete todo
+app.delete("/delete/:id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { id } = req.params;
+        const todo = yield prisma.todos.delete({
+            where: {
+                id: parseInt(id),
+            },
+        });
+        return res.status(200).json({
+            message: "Deleted Successfully",
+            todo,
+        });
+    }
+    catch (error) {
+        return res.status(400).send({
+            error: "Unauthorized",
+        });
+    }
 }));
 app.listen(process.env.PORT || 8000, () => {
     console.log(`Server running on port ${process.env.PORT}`);
