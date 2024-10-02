@@ -9,9 +9,9 @@ import {
 import { Input } from "../components/ui/input";
 
 import { Button } from "../components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Label } from "../components/ui/label";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import axios from "axios";
 
 const Signup = () => {
@@ -19,13 +19,17 @@ const Signup = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const handleSubmit = async () => {
+  const navigate = useNavigate();
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/signup", {
+      const res = await axios.post("http://localhost:8000/signup", {
         username,
         email,
         password,
       });
+      localStorage.setItem("token", res.data);
+      navigate("/home");
     } catch (error: unknown) {
       if (error instanceof Error) {
         setError(error.message);
@@ -76,7 +80,7 @@ const Signup = () => {
         </CardContent>
 
         <CardFooter className="flex justify-between">
-          <Button onClick={() => handleSubmit()}>Register</Button>
+          <Button onClick={handleSubmit}>Register</Button>
         </CardFooter>
       </Card>
     </div>

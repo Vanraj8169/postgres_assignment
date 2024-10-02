@@ -48,11 +48,16 @@ app.post("/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 password: hashedPassword,
             },
         });
-        res.status(201).send(newUser);
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            throw new Error("JWT Secret is not defined");
+        }
+        const token = jwt.sign({ userId: newUser === null || newUser === void 0 ? void 0 : newUser.id }, secret);
+        res.status(201).send({ token });
     }
     catch (error) { }
 }));
-app.get("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const loginSchema = z.object({
         username: z.string(),
         password: z.string(),

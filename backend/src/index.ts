@@ -42,11 +42,16 @@ app.post("/signup", async (req, res) => {
         password: hashedPassword,
       },
     });
-    res.status(201).send(newUser);
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT Secret is not defined");
+    }
+    const token = jwt.sign({ userId: newUser?.id }, secret);
+    res.status(201).send({ token });
   } catch (error) {}
 });
 
-app.get("/login", async (req: any, res: any) => {
+app.post("/login", async (req: any, res: any) => {
   const loginSchema = z.object({
     username: z.string(),
     password: z.string(),
