@@ -52,7 +52,9 @@ app.post("/signup", (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         if (!secret) {
             throw new Error("JWT Secret is not defined");
         }
-        const token = jwt.sign({ userId: newUser === null || newUser === void 0 ? void 0 : newUser.id }, secret);
+        const token = jwt.sign({ userId: newUser === null || newUser === void 0 ? void 0 : newUser.id }, secret, {
+            expiresIn: "15d",
+        });
         res.status(201).send({ token });
     }
     catch (error) { }
@@ -81,7 +83,7 @@ app.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         if (!secret) {
             throw new Error("JWT Secret is not defined");
         }
-        const token = jwt.sign({ userId: user === null || user === void 0 ? void 0 : user.id }, secret);
+        const token = jwt.sign({ userId: user === null || user === void 0 ? void 0 : user.id }, secret, { expiresIn: "15d" });
         return res.status(200).json({
             message: "Login Successfull",
             token,
